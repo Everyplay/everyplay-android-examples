@@ -112,7 +112,7 @@ public class EveryplayRecordRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 gl10) {
         GLES20.glClearColor(0.45f, 0.45f, 0.45f, 1.0f);
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_STENCIL_BUFFER_BIT);
 
         if (glesVersion >= 2) {
             GLES20.glUseProgram(program);
@@ -165,6 +165,7 @@ public class EveryplayRecordRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 unused, int width, int height) {
         // Adjust the viewport based on geometry changes,
         // such as screen rotation
+        Log.e(TAG, "ON SURFACE CHANGED: " + width + " x " + height);
         GLES20.glViewport(0, 0, width, height);
     }
 

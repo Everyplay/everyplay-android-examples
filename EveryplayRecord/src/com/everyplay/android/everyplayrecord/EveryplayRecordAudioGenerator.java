@@ -4,9 +4,15 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Process;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Random;
 
 class EveryplayRecordAudioTrack {
+    public InputStream stream = null;
     protected int sampleRate = 44100;
 
     public double stepping(int sampleRateRef) {
@@ -665,16 +671,48 @@ class EveryplayRecordAudioTrack6 extends EveryplayRecordAudioTrack {
     }
 }
 
+class EveryplayRecordAudioTrackWav extends EveryplayRecordAudioTrack {
+    public EveryplayRecordAudioTrackWav(InputStream inputStream) {
+        stream = inputStream;
+    }
+
+    public short sample(int t) {
+        short ret = 0;
+        int b1 = 0, b2 = 0;
+        if (t == 0) {
+            try {
+                stream.reset();
+                stream.skip(EveryplayRecordAudioGenerator.HEADER_SIZE);
+            } catch (IOException e) {
+            }
+        }
+        try {
+            b1 = stream.read();
+            b2 = stream.read();
+            if (b2 < 0) {
+                stream.reset();
+                stream.skip(EveryplayRecordAudioGenerator.HEADER_SIZE);
+            }
+            ret = (short) ((b2 << 8) | b1);
+        } catch (IOException e) {
+        }
+
+        return ret;
+    }
+}
+
 public class EveryplayRecordAudioGenerator {
     private EveryplayRecordAudioTrack generator = null;
     private Thread t = null;
     private int sampleRate = 44100;
+    private int numChannels = 1;
     private boolean isRunning = false;
     private boolean isPaused = false;
     private int buffsize = 0;
     private AudioTrack audioTrack = null;
     private short samples[] = null;
     private double d = 0.0f;
+    public static int HEADER_SIZE = 44;
 
     private static EveryplayRecordAudioTrack mapTrack(int index) {
         EveryplayRecordAudioTrack track = null;
@@ -707,9 +745,28 @@ public class EveryplayRecordAudioGenerator {
         this(mapTrack(index));
     }
 
+    public EveryplayRecordAudioGenerator(InputStream inputStream) {
+        this(new EveryplayRecordAudioTrackWav(inputStream));
+    }
+
     public EveryplayRecordAudioGenerator(EveryplayRecordAudioTrack input) {
+        if (input.stream != null) {
+            ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+            try {
+                input.stream.read(buffer.array(), buffer.arrayOffset(), buffer.capacity());
+            } catch (IOException e1) {
+            }
+            buffer.rewind();
+            buffer.position(buffer.position() + 22);
+            numChannels = buffer.getShort();
+            sampleRate = buffer.getInt();
+        }
+
         // set the buffer size
-        buffsize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        buffsize = AudioTrack.getMinBufferSize(sampleRate,
+                numChannels == 1 ? AudioFormat.CHANNEL_OUT_MONO : AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT);
 
         // Avoid stuttering
         buffsize *= 2;
@@ -733,8 +790,9 @@ public class EveryplayRecordAudioGenerator {
 
                 Process.setThreadPriority(THREAD_PRIORITY_AUDIO);
 
-                audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, AudioFormat.CHANNEL_OUT_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT, buffsize, AudioTrack.MODE_STREAM);
+                audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, numChannels == 1
+                        ? AudioFormat.CHANNEL_OUT_MONO
+                        : AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT, buffsize, AudioTrack.MODE_STREAM);
 
                 audioTrack.play();
 

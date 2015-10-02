@@ -1,6 +1,8 @@
 package com.everyplay.android.everyplayrecord;
 
 import com.everyplay.Everyplay.Everyplay;
+import com.everyplay.Everyplay.EveryplayFaceCamPreviewOrigin;
+import com.everyplay.Everyplay.EveryplayFaceCamColor;
 import com.everyplay.Everyplay.IEveryplayListener;
 
 import org.json.JSONException;
@@ -81,7 +83,9 @@ public class EveryplayRecordActivity extends Activity implements IEveryplayListe
             Button hudRecord = addButton("HUD record off", "hud_record");
             hudRecord.setVisibility(View.GONE);
 
-            stream1 = new EveryplayRecordAudioGenerator(5);
+            addButton("Request Rec Permission", "facecam_test");
+
+            stream1 = new EveryplayRecordAudioGenerator(getResources().openRawResource(R.raw.loop));
             stream1.play();
             streamActive = stream1;
         } else {
@@ -219,16 +223,24 @@ public class EveryplayRecordActivity extends Activity implements IEveryplayListe
     @Override
     public void onEveryplayFaceCamSessionStarted() {
         Log.d(TAG, "onEveryplayFaceCamSessionStarted");
+        final Button faceCamButton = (Button) buttons.findViewWithTag("facecam_test");
+        faceCamButton.setText("Stop FaceCam");
     }
 
     @Override
     public void onEveryplayFaceCamRecordingPermission(int granted) {
         Log.d(TAG, "onEveryplayFaceCamRecordingPermission: " + granted);
+        if (granted != 0) {
+            final Button faceCamButton = (Button) buttons.findViewWithTag("facecam_test");
+            faceCamButton.setText("Start FaceCam");
+        }
     }
 
     @Override
     public void onEveryplayFaceCamSessionStopped() {
         Log.d(TAG, "onEveryplayFaceCamSessionStopped");
+        final Button faceCamButton = (Button) buttons.findViewWithTag("facecam_test");
+        faceCamButton.setText("Start FaceCam");
     }
 
     @Override
@@ -242,11 +254,6 @@ public class EveryplayRecordActivity extends Activity implements IEveryplayListe
     @Override
     public void onEveryplayUploadDidComplete(int videoId) {
         Log.d(TAG, "onEveryplayUploadDidComplete: " + videoId);
-    }
-
-    @Override
-    public void onEveryplayThumbnailReadyAtFilePath(String thumbnailFilePath) {
-        Log.d(TAG, "onEveryplayThumbnailReadyAtFilePath: " + thumbnailFilePath);
     }
 
     @Override
@@ -287,12 +294,31 @@ public class EveryplayRecordActivity extends Activity implements IEveryplayListe
                 }
             } else if (tag.equalsIgnoreCase("play_last_recording")) {
                 Everyplay.playLastRecording();
+            } else if (tag.equalsIgnoreCase("facecam_test")) {
+                if (Everyplay.FaceCam.isRecordingPermissionGranted()) {
+                    if (Everyplay.FaceCam.isSessionRunning()) {
+                        Everyplay.FaceCam.stopSession();
+                    } else {
+                        Everyplay.setMaxRecordingMinutesLength(1);
+                        Everyplay.FaceCam.setPreviewPositionX(16);
+                        Everyplay.FaceCam.setPreviewPositionY(16);
+                        Everyplay.FaceCam.setPreviewSideWidth(128);
+                        Everyplay.FaceCam.setPreviewBorderWidth(4);
+                        Everyplay.FaceCam.setPreviewBorderColor(new EveryplayFaceCamColor(1, 0.3f, 1, 1.0f));
+                        // Everyplay.FaceCam.setAudioOnly(true);
+                        Everyplay.FaceCam.setPreviewOrigin(EveryplayFaceCamPreviewOrigin.BOTTOM_RIGHT);
+                        Everyplay.FaceCam.startSession();
+                    }
+                } else {
+                    Everyplay.FaceCam.requestRecordingPermission();
+                }
             } else if (tag.equalsIgnoreCase("play1_a")) {
                 if (streamActive != null) {
                     streamActive.stop();
                     streamActive = null;
                 }
-                stream1 = new EveryplayRecordAudioGenerator(6);
+                // stream1 = new EveryplayRecordAudioGenerator(6);
+                stream1 = new EveryplayRecordAudioGenerator(getResources().openRawResource(R.raw.loop));
                 stream1.play();
                 streamActive = stream1;
             } else if (tag.equalsIgnoreCase("unload1_a")) {
@@ -324,7 +350,8 @@ public class EveryplayRecordActivity extends Activity implements IEveryplayListe
                     streamActive.stop();
                     streamActive = null;
                 }
-                stream2 = new EveryplayRecordAudioGenerator(5);
+                // stream2 = new EveryplayRecordAudioGenerator(5);
+                stream2 = new EveryplayRecordAudioGenerator(getResources().openRawResource(R.raw.loop));
                 stream2.play();
                 streamActive = stream2;
             } else if (tag.equalsIgnoreCase("unload2_a")) {
