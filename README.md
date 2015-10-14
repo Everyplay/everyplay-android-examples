@@ -15,3 +15,6 @@ where you'll place `everyplay-android-examples`. No git submodule usage planned.
 - EveryplayRecord
     - Basic audio/video recording integration against android.opengl.GLSurfaceView
     - Audio support through AudioTrack PCM streaming mode
+
+## Facecam feature
+- Live facecam is activated by selecting 'Request Rec Permission' and if that succeeds, select 'Start Facecam'
